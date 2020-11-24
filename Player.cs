@@ -20,6 +20,7 @@ public class Player : MonoBehaviour
 
 
     // Start is called before the first frame update
+    // Sets up some basic parameters for the player
     void Start()
     { 
         anim = GetComponent<Animator>();
@@ -28,14 +29,16 @@ public class Player : MonoBehaviour
         score_Text.text = score.ToString();
         target_pos = transform.position;
     }
-
+    
+    // Ensures the player never forgets to move when it is told to
     private void Update()
     {
         
         step = speed * Time.deltaTime;
         transform.position = Vector2.MoveTowards(transform.position, target_pos, step);
     }
-
+    
+    // Checks whether the player can move in a direction 'dir'
     bool CheckMove(Vector2 dir)
     {
         RaycastHit2D hit = Physics2D.Raycast(transform.position, dir, MaxRayDist);
@@ -46,7 +49,8 @@ public class Player : MonoBehaviour
             return false;
         
     }
-
+    
+    // Detects pickups in the game and increments the score
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if(collision.gameObject.CompareTag("Pickup"))
@@ -55,6 +59,8 @@ public class Player : MonoBehaviour
             score_Text.text = score.ToString();
         }
     }
+    
+    // These public functions can be used through UI Buttons inside the Unity engine
     public void MoveUp()
     {
         
