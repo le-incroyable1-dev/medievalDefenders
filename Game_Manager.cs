@@ -38,3 +38,10 @@ public class Game_Manager : MonoBehaviour
 
 
 }
+
+/* =============================================================================
+#  Author:          Aurav S Tomar - https://github.com/le-incroyable1-dev
+#  Email:           aurav.tomar@gmail.com
+#  FileName:        Player.cs
+#  Created On:      26/11/2020
+============================================================================= */
