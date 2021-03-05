@@ -10,7 +10,7 @@ public class teleporter : MonoBehaviour
     {
         Transform collisionTransform = collision.gameObject.GetComponent<Transform>();
 
-        if (collision.gameObject.CompareTag("Player"))
+        //if (collision.gameObject.CompareTag("Player"))
             collisionTransform.position = Vector3.Lerp(collisionTransform.position, tPoint.position, 1.5f);
     }
 }
