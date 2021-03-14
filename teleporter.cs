@@ -14,3 +14,10 @@ public class teleporter : MonoBehaviour
             collisionTransform.position = Vector3.Lerp(collisionTransform.position, tPoint.position, 1.5f);
     }
 }
+
+/* =============================================================================
+#  Author:          Aurav S Tomar - https://github.com/le-incroyable1-dev
+#  Email:           aurav.tomar@gmail.com
+#  FileName:        teleporter.cs
+============================================================================= */
+
