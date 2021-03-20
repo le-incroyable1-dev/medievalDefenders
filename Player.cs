@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
+
 public class Player : MonoBehaviour
 {
     private float speed = 10.0f;
@@ -34,6 +35,7 @@ public class Player : MonoBehaviour
     //public GameObject playerFace;
     public GameObject counterShow;
     public Light player_Light;
+    public GameObject[] GlowLights;
     public AudioSource intense_src;
 
     public TextMeshProUGUI score_Text;
@@ -41,13 +43,17 @@ public class Player : MonoBehaviour
 
     public Vector2 target_pos;
 
+    private Touch playerTouch;
+    private Vector2 touchStart, touchEnd;
+
 
     //TEST
     //public bool test_CanMove = true;
 
     // Start is called before the first frame update
+
     void Start()
-    { 
+    {
         //anim = GetComponent<Animator>();
         cc = GetComponent<CircleCollider2D>();
         spr = GetComponent<SpriteRenderer>();
@@ -63,7 +69,8 @@ public class Player : MonoBehaviour
     private void Update()
     {
 
-        
+#if UNITY_EDITOR_WIN
+
         if (UpPress)
         {
             if (CheckMove(Vector2.up))
@@ -105,8 +112,85 @@ public class Player : MonoBehaviour
             }
         }
 
+#endif
+
+
+#if UNITY_ANDROID
+
+        if (Input.touchCount > 0)
+        {
+                playerTouch = Input.GetTouch(0);
+
+                if (playerTouch.phase == TouchPhase.Began)
+                {
+                    touchStart = playerTouch.position;
+                }
+
+                else if (playerTouch.phase == TouchPhase.Moved || playerTouch.phase == TouchPhase.Ended)
+                {
+                    touchEnd = playerTouch.position;
+
+                    float x = touchEnd.x - touchStart.x;
+                    float y = touchEnd.y - touchStart.y;
+
+                    if (Mathf.Abs(x) == 0 && Mathf.Abs(y) == 0)
+                    {
+                        //SHE JUST TAPPED, NO MOTION OF THE TOUCH
+                    }
+
+                    else if (Mathf.Abs(x) > Mathf.Abs(y))
+                    {
+                        if (x > 0)
+                        {
+                            if (CheckMove(Vector2.right))
+                            {
+                                target_pos = new Vector2(transform.position.x + MoveDist, transform.position.y);
+                                step = speed * Time.deltaTime;
+                                transform.position = Vector2.MoveTowards(transform.position, target_pos, step);
+                                spr.flipX = false;
+                            }   
+                        }
+                        else
+                        {
+                            if (CheckMove(Vector2.left))
+                            {
+                                target_pos = new Vector2(transform.position.x - MoveDist, transform.position.y);
+                                step = speed * Time.deltaTime;
+                                transform.position = Vector2.MoveTowards(transform.position, target_pos, step);
+                                spr.flipX = true;
+                            }
+                        }
+                    }
+
+                    else
+                    {
+                        if (y > 0)
+                        {
+                            if (CheckMove(Vector2.up))
+                            {
+                                target_pos = new Vector2(transform.position.x, transform.position.y + MoveDist);
+                                step = speed * Time.deltaTime;
+                                transform.position = Vector2.MoveTowards(transform.position, target_pos, step);
+                            }
+                        }
+                        else
+                        {
+                            if (CheckMove(Vector2.down))
+                            {
+                                target_pos = new Vector2(transform.position.x, transform.position.y - MoveDist);
+                                step = speed * Time.deltaTime;
+                                transform.position = Vector2.MoveTowards(transform.position, target_pos, step);
+                            }
+                        }
+                    }
+                }
+
+        }
+
+#endif
+
         //
-       if(canKill)
+        if(canKill)
         {
             if(((int)counter) > 0)
             {
@@ -115,6 +199,7 @@ public class Player : MonoBehaviour
             }
             else
             {
+                GlowLights[0].SetActive(false);
                 counterShow.SetActive(false);
                 src.clip = pickupClip;
                 intense_src.volume = 0;
@@ -150,6 +235,7 @@ public class Player : MonoBehaviour
             collision.gameObject.SetActive(false);
             canKill = true;
             intense_src.volume = 1;
+            GlowLights[0].SetActive(true);
             player_Light.intensity = 1.1f;
             game_Manager.SetAudio();
             counterShow.SetActive(true);
@@ -165,7 +251,8 @@ public class Player : MonoBehaviour
 
     }
 
-    //
+
+#if UNITY_EDITOR_WIN
     public void MoveUp()
     {
         UpPress = true;
@@ -202,7 +289,8 @@ public class Player : MonoBehaviour
     {
         LeftPress = false;
     }
-    //
+
+#endif
 
     //TEST
     /*bool CheckMove(Vector2 dir)
@@ -222,10 +310,9 @@ public class Player : MonoBehaviour
 
 
 /* =============================================================================
-#  Author:          Aurav S Tomar - https://github.com/le-incroyable1-dev
-#  Email:           aurav.tomar@gmail.com
-#  FileName:        Player.cs
-#  Updated On:      23/12/2020
-#  Created On:      24/11/2020
+# Author:          Aurav S Tomar - https://github.com/le-incroyable1-dev
+# Email:           aurav.tomar@gmail.com
+# FileName:        Player.cs
+# Updated On:      20/03/2021
 ============================================================================= */
 
