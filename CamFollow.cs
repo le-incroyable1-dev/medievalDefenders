@@ -20,19 +20,34 @@ namespace Com.MyCompany.Pacman
         private Vector3 m_LookAheadPos;
 
         // Use this for initialization
-        private void Start()
+        void Start()
         {
-            target = Player.LocalPlayerInstance.GetComponent<Transform>(); // setting the target to the local player instance in the scene
             
             m_LastTargetPosition = target.position;
             m_OffsetZ = (transform.position - target.position).z;
             transform.parent = null;
+
+            target = Player.LocalPlayerInstance.transform; // setting the target to the local player instance in the scene
+
         }
 
 
         // Update is called once per frame
         private void Update()
         {
+            //
+            if (target == null)
+            {
+                if (Player.LocalPlayerInstance != null)
+                {
+                    target = Player.LocalPlayerInstance.transform;
+                    Debug.Log("<Color=Red>Found player instance ! : CamFollow.cs.Update()");
+                    m_LastTargetPosition = target.position;
+                    m_OffsetZ = (transform.position - target.position).z;
+                    transform.parent = null;
+                }
+            }
+            //
             // only update lookahead pos if accelerating or changed direction
             float xMoveDelta = (target.position - m_LastTargetPosition).x;
 
