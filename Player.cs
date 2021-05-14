@@ -89,6 +89,13 @@ namespace Com.MyCompany.Pacman
 
         void Start()
         {
+            if (photonView.IsMine)
+            {
+                Player.LocalPlayerInstance = this.gameObject;
+            }
+
+            game_Manager = GameObject.Find("GameManager").GetComponent<Game_Manager>();
+
 
 #if UNITY_5_4_OR_NEWER
             // Unity 5.4 has a new scene management. register a method to call CalledOnLevelWasLoaded.
@@ -107,7 +114,7 @@ namespace Com.MyCompany.Pacman
             //Detect required stuff
             //player_Light = GetComponentInChildren<Light>();
             score_Text = GameObject.FindGameObjectWithTag("ScoreText").GetComponent<TMP_Text>();
-            score_Text = GameObject.FindGameObjectWithTag("CounterText").GetComponent<TMP_Text>();
+            counter_Text = GameObject.FindGameObjectWithTag("CounterText").GetComponent<TMP_Text>();
             intense_src = GameObject.Find("IntenseMusic").GetComponent<AudioSource>();
             counterShow = GameObject.FindGameObjectWithTag("Counter_0");
 
@@ -441,7 +448,6 @@ void OnLevelWasLoaded(int level)
 # Author:          Aurav S Tomar - https://github.com/le-incroyable1-dev
 # Email:           aurav.tomar@gmail.com
 # FileName:        Player.cs
-# Updated On:      13/05/2021
+# Updated On:      14/05/2021
 ============================================================================= */
-
 
