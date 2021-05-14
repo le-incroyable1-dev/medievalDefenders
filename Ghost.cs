@@ -51,21 +51,37 @@ namespace Com.MyCompany.Pacman
         // Use this for initialization
         void Start()
         {
+            
+            anim = GetComponent<Animator>();
+            rb = GetComponent<Rigidbody2D>();
+            cc = GetComponent<CircleCollider2D>();
+            spr = GetComponent<SpriteRenderer>();
+
             player = Player.LocalPlayerInstance;
 
             player_Anim = player.GetComponent<Animator>();
             player_Audio = player.GetComponent<AudioSource>();
             player_Light = player.GetComponentInChildren<Light>();
 
-            anim = GetComponent<Animator>();
-            rb = GetComponent<Rigidbody2D>();
-            cc = GetComponent<CircleCollider2D>();
-            spr = GetComponent<SpriteRenderer>();
         }
 
         // Update is called once per frame
         void Update()
         {
+
+            //
+            if(player == null)
+            {
+                if(Player.LocalPlayerInstance != null)
+                {
+                    player = Player.LocalPlayerInstance;
+                    Debug.Log("<Color=Red> Found player instance ! : Ghost.cs.Update()");
+                    player_Anim = player.GetComponent<Animator>();
+                    player_Audio = player.GetComponent<AudioSource>();
+                    player_Light = player.GetComponentInChildren<Light>();
+                }    
+            }
+            //
             //Direction  ki Change
             if (!openDirection(direction))
             {
@@ -202,10 +218,11 @@ namespace Com.MyCompany.Pacman
     }
 }
 
+
 /* =============================================================================
 #  Author:          Divya Gandhi - https://github.com/divya16-bit
 #  Email:           16gandhi.hemani@gmail.com
 #  FileName:        ghost.cs
 #  Created On:      26/11/2020
-#  Updated On :     13/05/2021 by Aurav
+#  Updated On :     14/05/2021 by Aurav
 ============================================================================= */
