@@ -14,7 +14,7 @@ namespace Com.MyCompany.Pacman
 
         #region Public Fields
 
-        public AudioSource game_audio;
+        private AudioSource game_audio;
         public GameObject WinStruct;
         public GameObject LoseStruct;
         public static Game_Manager Instance;
@@ -25,9 +25,6 @@ namespace Com.MyCompany.Pacman
         #endregion
 
         #region MonoBehaviour Callbacks
-
-
-
         #endregion
 
         #region Photon CallBacks
@@ -145,11 +142,10 @@ namespace Com.MyCompany.Pacman
         #endregion
     }
 }
-
 /* =============================================================================
 #  Author:          Aurav S Tomar - https://github.com/le-incroyable1-dev
 #  Email:           aurav.tomar@gmail.com
-#  FileName:        Player.cs
+#  FileName:        Game_Manager.cs
 #  Created On:      26/11/2020
-#  Updated On:      13/05/2021
+#  Updated On:      14/05/2021
 ============================================================================= */
