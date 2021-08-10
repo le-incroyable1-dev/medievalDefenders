@@ -11,19 +11,19 @@ namespace Com.MyCompany.fatman
     {
         #region Private Fields
 
-        private float speed = 10.0f;
+        public float speed = 5.0f;
         private float step;
         //private float counter = 10.0f;
 
         private CircleCollider2D cc;
-        //private Animator anim;
+        private Animator myAnim;
         private SpriteRenderer spr;
         private AudioSource src;
 
-        private bool UpPress = false;
-        private bool DownPress = false;
-        private bool RightPress = false;
-        private bool LeftPress = false;
+        public bool UpPress = false;
+        public bool DownPress = false;
+        public bool RightPress = false;
+        public bool LeftPress = false;
 
         public bool canDoTask = false;
 
@@ -35,7 +35,10 @@ namespace Com.MyCompany.fatman
 
         private PhotonView myPV;
 
-        private Animator myAnim;
+        public GameObject curTaskObj = null;
+        public int taskCompletion = 0;
+
+        public Slider susSlider;
 
         #endregion
 
@@ -51,9 +54,24 @@ namespace Com.MyCompany.fatman
         [Tooltip("The local player instance. Use this to know if the local player is represented in the Scene")]
         public static GameObject LocalPlayerInstance;
 
+        [Tooltip("The Player's UI GameObject Prefab")]
+        public GameObject PlayerUiPrefab;
+
+        public GameObject PlayerSusScreenPrefab;
+
+        public GameObject uiGO;
+
+        public GameObject playerSuspectScreen = null;
+        public GameObject loseScreen = null;
+        public GameObject winScreen = null;
+
+        public GameObject curSusPlayer = null;
+
+        public GameObject[] curPlayersList = null;
+
         //public GameObject localPlayerShow = LocalPlayerInstance;
 
-        
+
         #endregion
 
         #region Monobehaviour Callbacks
@@ -69,14 +87,9 @@ void OnLevelWasLoaded(int level)
 
         void CalledOnLevelWasLoaded(int level)
         {
-            /*
-            // check if we are outside the Arena and if it's the case, spawn around the center of the arena in a safe zone
-            if (!Physics.Raycast(transform.position, -Vector3.up, 5f))
-            {
-                transform.position = new Vector3(0f, 5f, 0f);
-            }
-            */
-            //Not required as of now
+            uiGO = Instantiate(PlayerUiPrefab);
+            uiGO.SendMessage("SetTarget", this, SendMessageOptions.RequireReceiver);
+           
         }
 
 
@@ -101,17 +114,35 @@ void OnLevelWasLoaded(int level)
                 player_PUN.LocalPlayerInstance = this.gameObject;
             }
 
+            MaxRayDist = 0.15f;
+            MoveDist = 0.15f;
+
             myAnim = GetComponent<Animator>();
             myPV = GetComponent<PhotonView>();
             cc = GetComponent<CircleCollider2D>();
             spr = GetComponent<SpriteRenderer>();
             src = GetComponent<AudioSource>();
 
+            //loseScreen.SetActive(false);
+            //winScreen.SetActive(true);
+
 #if UNITY_5_4_OR_NEWER
             // Unity 5.4 has a new scene management. register a method to call CalledOnLevelWasLoaded.
             UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
 
 #endif
+
+            if (PlayerUiPrefab != null)
+            {
+                uiGO = Instantiate(PlayerUiPrefab);
+                uiGO.SendMessage("SetTarget", this, SendMessageOptions.RequireReceiver);
+            }
+            else
+            {
+                Debug.LogWarning("<Color=Red><a>Missing</a></Color> PlayerUiPrefab reference on player Prefab.", this);
+            }
+
+            susSlider = uiGO.GetComponentInChildren<Slider>();
         }
 
         private void Update()
@@ -130,9 +161,11 @@ void OnLevelWasLoaded(int level)
                 return;
             }
 
-#if UNITY_EDITOR_WIN
+            //use UNITY_STANDALONE_WIN for .exe build
 
-            if (photonView.IsMine)
+
+
+            if (myPV.IsMine)
             {
                 if (UpPress)
                 {
@@ -160,9 +193,8 @@ void OnLevelWasLoaded(int level)
                         target_pos = new Vector2(transform.position.x + MoveDist, transform.position.y);
                         step = speed * Time.deltaTime;
                         transform.position = Vector2.MoveTowards(transform.position, target_pos, step);
-                        //spr.flipX = false;
-                        if (transform.rotation.y != 0)
-                            transform.Rotate(new Vector3(0, -180, 0));
+                        spr.flipX = false;
+                       
                     }
                 }
                 else if (LeftPress)
@@ -172,17 +204,28 @@ void OnLevelWasLoaded(int level)
                         target_pos = new Vector2(transform.position.x - MoveDist, transform.position.y);
                         step = speed * Time.deltaTime;
                         transform.position = Vector2.MoveTowards(transform.position, target_pos, step);
-                        //spr.flipX = true;
-
-
-                        if (transform.rotation.y != 180)
-                            transform.Rotate(new Vector3(0, 180, 0));
-
+                        spr.flipX = true;
                     }
                 }
             }
 
-#endif
+            if(Input.GetMouseButtonDown(0) && myPV.IsMine)
+            {
+                //Debug.Log("Mouse(0) clicked !");
+                RaycastHit2D hit = Physics2D.Raycast(new Vector2(Camera.main.ScreenToWorldPoint(Input.mousePosition).x, Camera.main.ScreenToWorldPoint(Input.mousePosition).y), Vector2.zero, 0);
+                if (hit)
+                {
+                    //Debug.Log("Object hit : " + hit.collider.gameObject.name);
+                    if (hit.collider.CompareTag("Player") && !isIntruder &&!hit.collider.gameObject.GetComponent<PhotonView>().IsMine)
+                    {
+                        //if i clicked on a player, given that i am not the intruder and that player is not me !
+                        Debug.Log("Clicked on a player !!");
+                        curSusPlayer = hit.collider.gameObject;
+                        playerSuspectScreen.SetActive(true);
+                    }
+                }
+            }
+
 
 
 #if UNITY_ANDROID
@@ -221,9 +264,8 @@ void OnLevelWasLoaded(int level)
                                     target_pos = new Vector2(transform.position.x + MoveDist, transform.position.y);
                                     step = speed * Time.deltaTime;
                                     transform.position = Vector2.MoveTowards(transform.position, target_pos, step);
-                                    //spr.flipX = false;
-                                    if (transform.rotation.y != 0)
-                                        transform.Rotate(new Vector3(0, -180, 0));
+                                    spr.flipX = false;
+                                    
                                 }
                             }
                             else
@@ -233,11 +275,10 @@ void OnLevelWasLoaded(int level)
                                     target_pos = new Vector2(transform.position.x - MoveDist, transform.position.y);
                                     step = speed * Time.deltaTime;
                                     transform.position = Vector2.MoveTowards(transform.position, target_pos, step);
-                                    //spr.flipX = true;
+                                    spr.flipX = true;
 
 
-                                    if (transform.rotation.y != 180)
-                                        transform.Rotate(new Vector3(0, 180, 0));
+                                 
                                 }
                             }
                         }
@@ -284,6 +325,7 @@ void OnLevelWasLoaded(int level)
             else if(other.gameObject.CompareTag("TaskObj"))
             {
                 canDoTask = true;
+                curTaskObj = other.gameObject;
             }
         }
 
@@ -297,6 +339,8 @@ void OnLevelWasLoaded(int level)
             else if (other.gameObject.CompareTag("TaskObj"))
             {
                 canDoTask = false;
+                taskCompletion = 0;
+                curTaskObj = null;
             }
 
 
@@ -314,7 +358,7 @@ void OnLevelWasLoaded(int level)
             cc.Cast(dir, rchObj, MaxRayDist, true);
             foreach (RaycastHit2D rch in rchObj)
             {
-                if (rch && rch.collider.gameObject.tag == "Wall")
+                if (rch && (rch.collider.gameObject.CompareTag("Wall") /*|| rch.collider.gameObject.CompareTag("Player"))*/))
                 {
                     return false;
                 }
@@ -333,15 +377,41 @@ void OnLevelWasLoaded(int level)
 
         #region Public Functions
 
+        public void OnReportKillButton()
+        {
+            if (curSusPlayer.GetComponent<player_PUN>().isIntruder)
+            {
+                int curSusPlayerId = curSusPlayer.GetComponent<PhotonView>().ViewID;
+                Debug.Log("intruderID being kicked : " + curSusPlayerId);
+                curSusPlayer.GetComponent<player_PUN>().myPV.RPC("OnPlayerKilled", RpcTarget.All, curSusPlayerId);
+                myPV.RPC("TurnOnWinScreenForMembers", RpcTarget.All);
+            }
+            else
+            {
+                loseScreen.SetActive(true);
+                StartCoroutine(PauseExecutionForDisconnect(3));
+            }
+        }
+
+        public void OnSuspectButton()
+        {
+            int curSusPlayerId = curSusPlayer.GetComponent<PhotonView>().ViewID;
+            Debug.Log("intruderID being sused : " + curSusPlayerId);
+            curSusPlayer.GetComponent<player_PUN>().myPV.RPC("OnSusedPlayer", RpcTarget.All, curSusPlayerId);
+        }
+
+        public void CloseSusScreen()
+        {
+            playerSuspectScreen.SetActive(false);
+        }
 
         public void ExecuteKill()
         {
             myAnim.Play("player_Attack");
             //the attack animation is played when the kill button is pressed, even if we are not close to anyone!
 
-            if (closeToClient && curCloseClient)
-            {
-                
+            if (closeToClient && curCloseClient && photonView.IsMine)
+            { 
                 //PhotonNetwork.Instantiate("DeadBody", curCloseClient.transform.position, Quaternion.identity);
                 curCloseClientId = curCloseClient.GetComponent<PhotonView>().ViewID;
                 curCloseClient.GetComponent<player_PUN>().myPV.RPC("OnPlayerKilled", RpcTarget.All, curCloseClientId);
@@ -365,14 +435,42 @@ void OnLevelWasLoaded(int level)
             }
         }
 
-        public void DoTask()
+        public void performTask(int increment)
         {
-            if(canDoTask)
+            if (photonView.IsMine)
             {
-                //code for the task
+
+                if (canDoTask)
+                {
+                    myAnim.Play("player_Attack");
+                    taskCompletion += increment;
+                }
+
+                if (taskCompletion >= 100)
+                {
+                    Debug.Log("Task completed !");
+                    
+                    if(curTaskObj)
+                    {
+                        curTaskObj.GetComponent<PhotonView>().RequestOwnership();
+                        Debug.Log("Ownership Requested !");
+                        //request ownership 
+                        
+                        PhotonNetwork.Destroy(curTaskObj);
+                        //take ownership of the object and network destroy it
+                    }
+
+
+                    curTaskObj = null;
+                    canDoTask = false;
+                    taskCompletion = 0;
+                }
+
             }
         }
 
+
+        /*
 #if UNITY_EDITOR_WIN
         public void MoveUp()
         {
@@ -410,8 +508,11 @@ void OnLevelWasLoaded(int level)
         {
             LeftPress = false;
         }
+        
 
 #endif
+        */
+
 #if UNITY_5_4_OR_NEWER
         public override void OnDisable()
         {
@@ -422,14 +523,7 @@ void OnLevelWasLoaded(int level)
 
         
 #endif
-        /*
-        public void OnPlayerKilled()
-        {
-            //do something when the player is killed
-        }
-        */
         
-
         #endregion
 
         #region Misc
@@ -462,8 +556,8 @@ void OnLevelWasLoaded(int level)
             Debug.Log("called OnPlayerKilled RPC");
 
             Debug.Log(idOfPlayer);
-            
-            if(!myPV.IsMine)
+
+            if (!myPV.IsMine)
             {
                 return;
             }
@@ -478,6 +572,58 @@ void OnLevelWasLoaded(int level)
                 Debug.Log("Disconnected !");
             }
         }
+        
+
+        [PunRPC]
+        void TurnOnWinScreenForMembers()
+        {
+            if (!myPV.IsMine)
+                return;
+
+            if(!isIntruder)
+                winScreen.SetActive(true);
+        }
+
+        [PunRPC]
+        void OnSusedPlayer(int idOfPlayer)
+        {
+            Debug.Log("called OnSusedPlayer RPC");
+
+            Debug.Log(idOfPlayer);
+
+            /*
+            if (!myPV.IsMine)
+            {
+                return;
+            }
+            */
+
+            int curId = myPV.ViewID;
+            Debug.Log(curId);
+
+           curPlayersList = GameObject.FindGameObjectsWithTag("Player");
+
+            for(int i = 0; i < curPlayersList.Length; i++)
+            {
+                Debug.Log("Current id being checked for sus : " + curPlayersList[i].GetComponent<PhotonView>().ViewID);
+
+                if(curPlayersList[i].GetComponent<PhotonView>().ViewID == idOfPlayer)
+                {
+                    Debug.Log("Sus id matched : " + idOfPlayer);
+                    curPlayersList[i].GetComponent<player_PUN>().susSlider.value += 0.1f;
+                }
+            }
+        }
+
+        #endregion
+
+        #region Coroutines
+
+        IEnumerator PauseExecutionForDisconnect(int seconds)
+        {
+            yield return new WaitForSeconds(seconds);
+            PhotonNetwork.Disconnect();
+        }
 
         #endregion
 
@@ -485,9 +631,10 @@ void OnLevelWasLoaded(int level)
 }
 
 
+
 /* =============================================================================
 # Author:          Aurav S Tomar - https://github.com/le-incroyable1-dev
 # Email:           aurav.tomar@gmail.com
 # FileName:        player_PUN.cs
-# Updated On:      15/07/2021
+# Updated On:      10/08/2021
 ============================================================================= */
