@@ -12,8 +12,11 @@ namespace Com.MyCompany.fatman
         #region Private Fields
 
         PhotonView pv;
-        public int intruderPlayerIndex = -1;
-        public player_PUN playerScript;
+        int intruderPlayerIndex = -1;
+        player_PUN playerScript;
+
+        int callCount = 0;
+        bool check = false;
 
         #endregion
 
@@ -23,6 +26,9 @@ namespace Com.MyCompany.fatman
         public GameObject playerPrefab;
 
         public GameObject killButton;
+
+        public GameObject susScreen = null;
+
 
         #endregion
 
@@ -40,52 +46,93 @@ namespace Com.MyCompany.fatman
             {
                 Debug.LogFormat("We are Instantiating LocalPlayer from {0}", Application.loadedLevelName);
                 // we're in a room. spawn a character for the local player. it gets synced by using PhotonNetwork.Instantiate
-                PhotonNetwork.Instantiate(this.playerPrefab.name, new Vector3(Random.Range(-0.2f,0.2f), 0f, -1f), Quaternion.identity, 0);
-            }
-
-            playerScript = player_PUN.LocalPlayerInstance.GetComponent<player_PUN>();
-
-            if (PhotonNetwork.IsMasterClient)
-            {
-                StartCoroutine(PauseExecution(5));
-                //Pauses execution here for 5 seconds, and then chooses the intruder client 
-                chooseIntruder();
-
+                PhotonNetwork.Instantiate(this.playerPrefab.name, new Vector3(Random.Range(-7f,7f), 0f, -1f), Quaternion.identity, 0);
             }
 
             
 
+            
+            playerScript = player_PUN.LocalPlayerInstance.GetComponent<player_PUN>();
+            Debug.Log("Found player_PUN for local player !");
+            //setup the local player script reference correctly
 
-            if(PhotonNetwork.LocalPlayer == PhotonNetwork.PlayerList[intruderPlayerIndex])
+            playerScript.playerSuspectScreen = susScreen;
+
+
+            if (PhotonNetwork.IsMasterClient)
             {
-                StartCoroutine(PauseExecution(5));
-                //Pauses execution here for 5 seconds, and then chooses the intruder client
+                //ensure these functions are called only ONCE
+
+
+                SetupTasks();
+                //setup the required task objects 
+
+                chooseIntruder();
+                //choose the Intruder
+
+            }
+
+
+            if (PhotonNetwork.LocalPlayer == PhotonNetwork.PlayerList[intruderPlayerIndex])
+            {
                 killButton.SetActive(true);
                 //playerScript.isIntruder = true;
                 //if the local player is the intruder, then we allow him to access the kill button
+                callCount = 1;
             }
+
+
+
+
 
         }
 
         private void Update()
         {
-            
-            if(!killButton.activeSelf)
+            if(!playerScript && player_PUN.LocalPlayerInstance)
             {
-                StartCoroutine(PauseExecution(3));
-                //pause execution for 3 seconds in order to avoid unnecessary load
-                if (intruderPlayerIndex < PhotonNetwork.CurrentRoom.PlayerCount)
+                playerScript = player_PUN.LocalPlayerInstance.GetComponent<player_PUN>();
+                Debug.Log("Found player_PUN for local player !");
+                //setup the local player script reference correctly
+            }
+
+
+            if(!killButton.activeSelf && callCount == 0) 
+            {
+                //check callCount to ensure we don't call these more than ONCE
+
+                if (PhotonNetwork.IsMasterClient)
                 {
-                    if (PhotonNetwork.LocalPlayer == PhotonNetwork.PlayerList[intruderPlayerIndex])
+                    chooseIntruder();
+                }
+
+
+                if (PhotonNetwork.LocalPlayer == PhotonNetwork.PlayerList[intruderPlayerIndex])
+                {
+                    killButton.SetActive(true);
+                    //playerScript.isIntruder = true;
+                    //if the local player is the intruder, then we allow him to access the kill button
+                    callCount = 1;
+                }
+
+                
+            }
+
+            if(playerScript)
+            {
+                if(playerScript.isIntruder && !check)
+                {
+                    if(! (PhotonNetwork.LocalPlayer == PhotonNetwork.PlayerList[intruderPlayerIndex]))
                     {
-                        killButton.SetActive(true);
-                        //if the local player is the intruder, then we allow him to access the kill button
+                        playerScript.isIntruder = false;
+                        check = true;
                     }
                 }
             }
 
-            
-            
+
+
+
         }
 
         #endregion
@@ -106,6 +153,24 @@ namespace Com.MyCompany.fatman
 
         #region Public Functions
         
+        public void susScreenOnKillReportButton()
+        {
+            if (playerScript)
+                playerScript.OnReportKillButton();
+        }
+
+        public void susScreenOnReportSusButton()
+        {
+            if (playerScript)
+                playerScript.OnSuspectButton();
+        }
+
+        public void DoTask()
+        {
+            if(playerScript)
+                playerScript.performTask(20);
+        }
+
         public void OnKillButton()
         {
             playerScript.ExecuteKill();
@@ -116,9 +181,70 @@ namespace Com.MyCompany.fatman
             PhotonNetwork.Disconnect();
         }
 
+        public void CloseSusScreen()
+        {
+            if (playerScript)
+                playerScript.CloseSusScreen();
+        }
+
+#if UNITY_STANDALONE_WIN
+        public void MoveUp()
+        {
+            if(playerScript)
+                playerScript.UpPress = true;
+
+        }
+        public void MoveDown()
+        {
+            if(playerScript)
+                playerScript.DownPress = true;
+
+        }
+        public void MoveRight()
+        {
+            if(playerScript)
+                playerScript.RightPress = true;
+        }
+        public void MoveLeft()
+        {
+            if(playerScript)
+                playerScript.LeftPress = true;
+
+        }
+        public void MoveUpRelease()
+        {
+            if(playerScript)
+                playerScript.UpPress = false;
+
+        }
+        public void MoveDownRelease()
+        {
+            if(playerScript)
+                playerScript.DownPress = false;
+        }
+        public void MoveRightRelease()
+        {
+            if(playerScript)
+                playerScript.RightPress = false;
+        }
+        public void MoveLeftRelease()
+        {
+            if(playerScript)
+                playerScript.LeftPress = false;
+        }
+
+#endif
+
         #endregion
 
         #region Private Functions 
+
+
+        void SetupTasks()
+        {
+            PhotonNetwork.Instantiate("tempTaskObject", new Vector3(0, 0, 1), Quaternion.identity);
+
+        }
 
         void chooseIntruder()
         {
@@ -154,10 +280,28 @@ namespace Com.MyCompany.fatman
             SceneManager.LoadScene(0);
         }
 
-        IEnumerator PauseExecution(int seconds)
+        /*
+        IEnumerator PauseExecutionForKillButton(int seconds)
         {
             yield return new WaitForSeconds(seconds);
+
+            if (PhotonNetwork.IsMasterClient)
+            {
+                chooseIntruder();
+
+            }
+
+
+            if (PhotonNetwork.LocalPlayer == PhotonNetwork.PlayerList[intruderPlayerIndex])
+            {
+                killButton.SetActive(true);
+                //playerScript.isIntruder = true;
+                //if the local player is the intruder, then we allow him to access the kill button
+            }
+
+            
         }
+        */
 
         #endregion
     }
@@ -168,5 +312,5 @@ namespace Com.MyCompany.fatman
 # Author:          Aurav S Tomar - https://github.com/le-incroyable1-dev
 # Email:           aurav.tomar@gmail.com
 # FileName:        gameManager_PUN.cs
-# Updated On:      15/07/2021
+# Updated On:      10/08/2021
 ============================================================================= */
